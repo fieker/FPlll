@@ -17,7 +17,7 @@ if !ispath(Pkg.dir("FPlll", "local", "lib"))
     mkdir(Pkg.dir("FPlll", "local", "lib"))
 end
 
-LDFLAGS = "-Wl,-rpath,$vdir/lib -Wl,-rpath,\$\$ORIGIN/../share/julia/site/v$(VERSION.major).$(VERSION.minor)/FPlll/local/libi -Wl,-rpath,$Nemo_vdir/lib"
+LDFLAGS = "-Wl,-rpath,$vdir/lib -Wl,-rpath,$Nemo_vdir/lib"
 
 cd(wdir)
 
@@ -30,15 +30,16 @@ if on_windows
 else
   if !ispath(Pkg.dir("FPlll", "deps", "fplll"))
     run(`git clone https://github.com/dstehle/fplll`)
+    cd("$wdir/fplll")
+    run(`./autogen.sh`)
   else  
-    cd("$wdir/deps/fplll")
+    cd("$wdir/fplll")
     run(`git pull`)
   end
-  run(`./autogen.sh`)
   run(`./configure --prefix=$vdir --with-gmp=$Nemo_vdir`)
   run(`make install`)
   cd("../flint")
-  run(`make install`)
+  withenv(()->run(`make install`), "LDFLAGS"=>LDFLAGS)
 end
 
 push!(Libdl.DL_LOAD_PATH, Pkg.dir("FPlll", "local", "lib"))
