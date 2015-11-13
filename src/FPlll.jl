@@ -9,11 +9,6 @@ export bkz, bkz_trans
 # To make all exported Nemo functions visible to someone using "using hecke"
 # we have to export everything again
 
-for i in names(Nemo)
-  eval(Expr(:export, i))
-end
-
-
 const pkgdir = joinpath(dirname(@__FILE__), "..")
 const libdir = joinpath(pkgdir, "local", "lib")
 const libflint_fplll = joinpath(pkgdir, "local", "lib", "libflint_fplll")
@@ -48,5 +43,17 @@ function bkz_trans(A::fmpz_mat, bs::Int)
   return B, T
 end
 
+function lll(A::fmpz_mat)
+  B = parent(A)(A)
+  st = ccall((:fplll_lll, :libflint_fplll), Int, (Ptr{fmpz_mat}, ), &B)
+  return B
+end
+
+function lll_trans(A::fmpz_mat)
+  B = parent(A)(A)
+  T = MatrixSpace(ZZ, rows(A), rows(A))()
+  st = ccall((:fplll_lll_trans, :libflint_fplll), Int, (Ptr{fmpz_mat}, Ptr{fmpz_mat}), &B, &T)
+  return B, T
+end
 
 end # module
