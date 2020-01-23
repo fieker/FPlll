@@ -6,7 +6,7 @@ pkgdir = joinpath(@__DIR__, "..")
 
 wdir = @__DIR__
 
-Nemo_pkgdir = Pkg.dir("Nemo") 
+Nemo_pkgdir = joinpath(dirname(pathof(Nemo)), "..")
 
 @show Nemo_pkgdir
 
@@ -16,7 +16,7 @@ const Nemo_prefixpath = joinpath(Nemo_pkgdir, "deps", "usr")
 
 prefixpath = joinpath(@__DIR__, "usr")
 
-Nemo_vdir = Pkg.dir("Nemo", "deps", "usr")
+Nemo_vdir = joinpath(Nemo_pkgdir, "deps", "usr")
 
 if !ispath(joinpath(wdir, "usr"))
   mkdir(joinpath(wdir, "usr"))
@@ -53,7 +53,7 @@ end
 if Sys.iswindows()
   error("not done yet: FPlll on windows")
 else
-  if !ispath(Pkg.dir("FPlll", "deps", "fplll"))
+  if !ispath(joinpath(wdir, "fplll"))
     run(`git clone https://github.com/dstehle/fplll`)
     cd("$wdir/fplll")
     run(`./autogen.sh`)
