@@ -1,31 +1,56 @@
-on_windows = @windows ? true : false
-on_osx = @osx ? true : false
+using Nemo, Pkg
 
 oldwdir = pwd()
 
-pkgdir = Pkg.dir("FPlll") 
-wdir = Pkg.dir("FPlll", "deps")
-vdir = Pkg.dir("FPlll", "local")
+pkgdir = joinpath(@__DIR__, "..")
+
+wdir = @__DIR__
 
 Nemo_pkgdir = Pkg.dir("Nemo") 
-Nemo_vdir = Pkg.dir("Nemo", "local")
 
-if !ispath(Pkg.dir("FPlll", "local"))
-    mkdir(Pkg.dir("FPlll", "local"))
+@show Nemo_pkgdir
+
+const Nemo_libdir = joinpath(Nemo_pkgdir, "deps", "usr", "lib")
+const Nemo_bindir = joinpath(Nemo_pkgdir, "deps", "usr", "bin")
+const Nemo_prefixpath = joinpath(Nemo_pkgdir, "deps", "usr")
+
+prefixpath = joinpath(@__DIR__, "usr")
+
+Nemo_vdir = Pkg.dir("Nemo", "deps", "usr")
+
+if !ispath(joinpath(wdir, "usr"))
+  mkdir(joinpath(wdir, "usr"))
 end
-if !ispath(Pkg.dir("FPlll", "local", "lib"))
-    mkdir(Pkg.dir("FPlll", "local", "lib"))
-end
 
-LDFLAGS = "-Wl,-rpath,$vdir/lib -Wl,-rpath,$Nemo_vdir/lib"
-
-cd(wdir)
+LDFLAGS = "-Wl,-rpath,$prefixpath/lib -Wl,-rpath,$Nemo_prefixpath/lib"
 
 cd(wdir)
 
 # install fplll
 
-if on_windows
+const makefile="""
+default: libflint_fplll.so
+main.o: main.cpp
+	gcc -c -o main.o main.cpp -fpic -I../fplll -I../fplll/fplll -I$Nemo_prefixpath/include \$(CFLAGS)
+
+libflint_fplll.so: main.o
+	gcc -shared -o libflint_fplll.so main.o -lfplll -lflint -L../usr/lib -L$Nemo_prefixpath/lib \$(LDFLAGS)
+
+install: libflint_fplll.so
+	mv libflint_fplll.so ../usr/lib
+"""
+
+println(makefile)
+
+if isfile(joinpath(wdir, "flint", "Makefile"))
+  rm(joinpath(wdir, "flint", "Makefile"))
+end
+
+open(joinpath(wdir, "flint", "Makefile"), "w") do f
+  write(f, makefile)
+end
+
+if Sys.iswindows()
   error("not done yet: FPlll on windows")
 else
   if !ispath(Pkg.dir("FPlll", "deps", "fplll"))
@@ -36,13 +61,13 @@ else
     cd("$wdir/fplll")
     run(`git pull`)
   end
-  run(`./configure --prefix=$vdir --with-gmp=$Nemo_vdir`)
-  run(`make install`)
+  run(`./configure --prefix=$prefixpath --with-gmp=$Nemo_prefixpath`)
+  run(`make -j4 install`)
   cd("../flint")
   withenv(()->run(`make install`), "LDFLAGS"=>LDFLAGS)
 end
 
-push!(Libdl.DL_LOAD_PATH, Pkg.dir("FPlll", "local", "lib"))
+push!(Libdl.DL_LOAD_PATH, joinpath(wdir, "usr", "lib"))
 
 cd(oldwdir)
 
