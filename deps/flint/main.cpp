@@ -24,32 +24,47 @@
 
 extern "C" {
 
-static void flint_to_fplll(IntMatrix &b, fmpz_mat_t A)
+#include "nr/matrix.h"
+FPLLL_BEGIN_NAMESPACE
+
+
+
+static void flint_to_fplll(ZZ_mat<mpz_t> &b, fmpz_mat_t A)
 {
+  mpz_t tmp;
+  mpz_init(tmp);
+
   for(int i=0; i<A->r; i++) {
     for(int j=0; j<A->c; j++) {
-      fmpz_get_mpz(b[i][j].getData(), fmpz_mat_entry(A, i, j));
+      fmpz_get_mpz(tmp, fmpz_mat_entry(A, i, j));
+      b[i][j] = tmp;
     }
   }
+  mpz_clear(tmp);
 }
 
-static void fplll_to_flint(fmpz_mat_t A, IntMatrix b)
+static void fplll_to_flint(fmpz_mat_t A, ZZ_mat<mpz_t> &b)
 {
+  mpz_t tmp;
+  mpz_init(tmp);
+
   for(int i=0; i<A->r; i++) {
     for(int j=0; j<A->c; j++) {
-      fmpz_set_mpz(fmpz_mat_entry(A, i, j), b[i][j].getData());
+      (b[i][j]).get_mpz(tmp);
+      fmpz_set_mpz(fmpz_mat_entry(A, i, j), tmp);
     }
   }
+  mpz_clear(tmp);
 }
 
+#if 0
 int fplll_bkz(fmpz_mat_t A, int bs)
 {
   BKZParam param;
-  IntMatrix b;
+  ZZ_mat<mpz_t> b(A->r, A->c);
   int status;
 
   param.blockSize = bs;
-  b = IntMatrix(A->r, A->c);
   flint_to_fplll(b, A);
 
 
@@ -91,50 +106,41 @@ int fplll_bkz_trans(fmpz_mat_t A, fmpz_mat_t T, int bs)
   return status;
 }
 
+#endif
 int fplll_lll(fmpz_mat_t A)
 {
-  IntMatrix b;
+  ZZ_mat<mpz_t> b(A->r, A->c);
   int status;
   double delta = LLL_DEF_DELTA, eta = LLL_DEF_ETA;
 
-  b = IntMatrix(A->r, A->c);
   flint_to_fplll(b, A);
 
-  status = lllReduction(b, delta, eta, LM_PROVED, FT_DEFAULT, 0, 0);
+  status = lll_reduction(b, delta, eta, LM_PROVED, FT_DEFAULT, 0, 0);
 
   fplll_to_flint(A, b);
   b.clear();
-
-  if (status != RED_SUCCESS) {
-    cerr << "Failure: " << getRedStatusStr(status) << endl;
-  }
 
   return status;
 }
 
 int fplll_lll_trans(fmpz_mat_t A, fmpz_mat_t T)
 {
-  IntMatrix b, u;
+  ZZ_mat<mpz_t> b(A->r, A->c), u(A->r, A->r);
   int status;
   double delta = LLL_DEF_DELTA, eta = LLL_DEF_ETA;
 
-  b = IntMatrix(A->r, A->c);
   flint_to_fplll(b, A);
 
-  u = IntMatrix(A->r, A->r);
-
-  status = lllReduction(b, u, delta, eta, LM_PROVED, FT_DEFAULT, 0, 0);
+  status = lll_reduction(b, u, delta, eta, LM_PROVED, FT_DEFAULT, 0, 0);
 
   fplll_to_flint(A, b);
   fplll_to_flint(T, u);
   b.clear();
   u.clear();
 
-  if (status != RED_SUCCESS) {
-    cerr << "Failure: " << getRedStatusStr(status) << endl;
-  }
   return status;
 }
 
+FPLLL_END_NAMESPACE
 
 }

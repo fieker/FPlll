@@ -1,6 +1,7 @@
 using Nemo, Pkg
 
 oldwdir = pwd()
+import Libdl
 
 pkgdir = joinpath(@__DIR__, "..")
 
